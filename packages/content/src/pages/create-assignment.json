@@ -1,0 +1,31 @@
+{
+  "id": "create-assignment",
+  "title": "Create Assignment",
+  "description": "Set up a new assignment for your students",
+  "nodes": [
+    {
+      "type": "text",
+      "variant": "title",
+      "value": "Create Assignment",
+      "as": "h1"
+    },
+    {
+      "type": "text",
+      "variant": "muted",
+      "value": "Set up a new assignment for your students",
+      "as": "p"
+    },
+    {
+      "type": "text",
+      "variant": "subtitle",
+      "value": "Assignment Details",
+      "as": "h2"
+    },
+    {
+      "type": "text",
+      "variant": "muted",
+      "value": "Basic information about your assignment",
+      "as": "p"
+    }
+  ]
+}

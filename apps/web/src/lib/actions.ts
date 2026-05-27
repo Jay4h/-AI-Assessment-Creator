@@ -1,0 +1,95 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import type { FormState } from "./validation";
+
+export async function submitAssignment(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const title = String(formData.get("title") ?? "").trim();
+  const subject = String(formData.get("subject") ?? "").trim();
+  const className = String(formData.get("className") ?? "").trim();
+  const dueDate = String(formData.get("dueDate") ?? "").trim();
+  const additionalInstructions = String(formData.get("additionalInstructions") ?? "").trim();
+  const rowCount = Number(formData.get("rowCount") ?? 0);
+
+  // Validate
+  const errors: Record<string, string> = {};
+  if (!title || title.length < 3) errors.title = "Title must be at least 3 characters";
+  if (!subject || subject.length < 2) errors.subject = "Subject is required";
+  if (!className) errors.className = "Class is required";
+  if (!dueDate) errors.dueDate = "Due date is required";
+  if (rowCount < 1) errors.questionTypes = "Add at least one question type";
+
+  const questionTypes = [];
+  for (let i = 0; i < rowCount; i++) {
+    const type = String(formData.get(`type-${i}`) ?? "");
+    const label = String(formData.get(`label-${i}`) ?? type);
+    const count = Number(formData.get(`count-${i}`) ?? 0);
+    const marks = Number(formData.get(`marks-${i}`) ?? 0);
+    if (count < 1) errors[`count-${i}`] = "Must be at least 1";
+    if (marks < 1) errors[`marks-${i}`] = "Must be at least 1";
+    questionTypes.push({ id: `row-${i}`, type, label, count, marksPerQuestion: marks });
+  }
+
+  if (Object.keys(errors).length > 0) {
+    return { ok: false, errors };
+  }
+
+  // POST to the API
+  const apiUrl = process.env.API_URL ?? "http://localhost:4001";
+  let assignmentId: string;
+  try {
+    const res = await fetch(`${apiUrl}/api/assignments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title,
+        subject,
+        className,
+        dueDate,
+        additionalInstructions,
+        questionTypes,
+      }),
+    });
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      return {
+        ok: false,
+        errors: { _form: body.error ?? "Failed to create assignment. Please try again." },
+      };
+    }
+
+    const data = await res.json();
+    assignmentId = data.assignmentId;
+  } catch {
+    return {
+      ok: false,
+      errors: { _form: "Could not reach the server. Is the API running?" },
+    };
+  }
+
+  redirect(`/assignments/${assignmentId}/output`);
+}
+
+export async function deleteAssignment(assignmentId: string) {
+  const { revalidatePath } = await import("next/cache");
+  const apiUrl = process.env.API_URL ?? "http://localhost:4001";
+  try {
+    const res = await fetch(`${apiUrl}/api/assignments/${assignmentId}`, {
+      method: "DELETE",
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to delete assignment");
+    }
+
+    revalidatePath("/assignments");
+    return { ok: true };
+  } catch (err: any) {
+    console.error("[actions] Failed to delete assignment", err);
+    return { ok: false, error: err.message || "Failed to delete assignment" };
+  }
+}

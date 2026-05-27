@@ -1,0 +1,149 @@
+"use client";
+
+import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
+import { QuestionPaperView } from "@vedaai/ui";
+import { GenerationStatusSubscriber } from "./generation-status-subscriber";
+import { useAssignmentStatus } from "@/lib/generation-status-store";
+import { fetchAssignmentOutput } from "@/lib/fetch-output";
+import { fetchAssignmentStatus } from "@/lib/fetch-status";
+import type { QuestionPaper } from "@vedaai/types";
+
+interface Props {
+  assignmentId: string;
+}
+
+/** Spinner rings */
+function Spinner() {
+  return (
+    <div className="relative mx-auto h-16 w-16">
+      <div className="absolute inset-0 animate-spin rounded-full border-4 border-[#f0f0f0] border-t-[#ff5623]" />
+    </div>
+  );
+}
+
+/** Animated progress bar */
+function ProgressBar({ progress }: { progress: number }) {
+  return (
+    <div className="h-2 w-full overflow-hidden rounded-full bg-[#f0f0f0]">
+      <div
+        className="h-full rounded-full bg-[#ff5623] transition-[width] duration-700 ease-out"
+        style={{ width: `${progress}%` }}
+      />
+    </div>
+  );
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  idle: "Queued",
+  queued: "Queued",
+  processing: "Generating…",
+  generating_section_A: "Generating Section A…",
+  generating_section_B: "Generating Section B…",
+  completed: "Done",
+  failed: "Failed",
+};
+
+export function OutputClient({ assignmentId }: Props) {
+  const { status, message, progress } = useAssignmentStatus(assignmentId);
+  const [paper, setPaper] = useState<QuestionPaper | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  // Race-condition guard: check DB status on mount.
+  // If the worker already finished before our socket subscribed,
+  // the "completed" socket event was missed — status stays "idle" forever.
+  // This one-shot poll bypasses the socket and fetches the paper directly.
+  useEffect(() => {
+    fetchAssignmentStatus(assignmentId).then((s) => {
+      if (s?.status === "completed" && paper === null) {
+        startTransition(async () => {
+          const result = await fetchAssignmentOutput(assignmentId);
+          if (result.output) setPaper(result.output);
+        });
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally run once on mount only
+
+  // When the socket signals completion, fetch the paper via Server Action
+  useEffect(() => {
+    if (status !== "completed" || paper !== null) return;
+    startTransition(async () => {
+      const result = await fetchAssignmentOutput(assignmentId);
+      if (result.output) setPaper(result.output);
+    });
+  }, [status, assignmentId, paper]);
+
+  const isTerminal = status === "completed" || status === "failed";
+
+  return (
+    <>
+      {/* Headless socket subscriber — manages Socket.IO lifecycle */}
+      <GenerationStatusSubscriber assignmentId={assignmentId} />
+
+      {/* -------- Completed: render the paper -------- */}
+      {paper ? (
+        <div className="mx-auto max-w-[1100px] rounded-[32px] bg-[#5e5e5e] p-2 sm:p-4 lg:p-5 print:bg-white print:p-0 print:rounded-none">
+          <QuestionPaperView paper={paper} />
+        </div>
+      ) : null}
+
+      {/* Loading skeleton while paper is fetching */}
+      {!paper && isPending ? (
+        <div className="mx-auto max-w-[1100px] animate-pulse space-y-4 rounded-3xl bg-white p-8">
+          <div className="h-6 w-2/3 rounded bg-[#f0f0f0]" />
+          <div className="h-4 w-1/2 rounded bg-[#f0f0f0]" />
+          <div className="mt-6 space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-4 rounded bg-[#f0f0f0]" />
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {/* -------- In-progress: show status card -------- */}
+      {!paper && status !== "completed" && status !== "failed" ? (
+        <div className="mx-auto flex max-w-[480px] flex-col items-center gap-8 rounded-3xl bg-white p-8 shadow-[0px_20px_30px_rgba(146,146,146,0.19)] sm:p-10">
+          <Spinner />
+
+          <div className="w-full space-y-3 text-center">
+            <p className="text-lg font-bold tracking-[-0.04em] text-[#303030]">
+              {STATUS_LABELS[status] ?? "Processing…"}
+            </p>
+            <p className="text-[15px] text-[rgba(94,94,94,0.8)]">{message}</p>
+            <ProgressBar progress={progress} />
+            <p className="text-sm font-semibold text-[#303030]">{progress}%</p>
+          </div>
+
+          <p className="max-w-[300px] text-center text-sm text-[#a9a9a9]">
+            Your question paper is being generated. This usually takes a few seconds.
+          </p>
+        </div>
+      ) : null}
+
+      {/* -------- Failed state -------- */}
+      {status === "failed" ? (
+        <div className="mx-auto flex max-w-[480px] flex-col items-center gap-6 rounded-3xl bg-white p-8 shadow-[0px_20px_30px_rgba(146,146,146,0.19)] text-center sm:p-10">
+          {/* Error icon */}
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden>
+              <circle cx="16" cy="16" r="14" stroke="#ef4444" strokeWidth="2"/>
+              <path d="M16 9V17" stroke="#ef4444" strokeWidth="2" strokeLinecap="round"/>
+              <circle cx="16" cy="22" r="1.5" fill="#ef4444"/>
+            </svg>
+          </div>
+          <div className="space-y-2">
+            <p className="text-lg font-bold text-[#303030]">Generation Failed</p>
+            <p className="text-[15px] text-[rgba(94,94,94,0.8)]">{message}</p>
+          </div>
+          <Link
+            href="/assignments/create"
+            className="inline-flex items-center gap-2 rounded-full bg-[#181818] px-6 py-3 text-[15px] font-medium text-white transition-opacity hover:opacity-90"
+          >
+            Try Again
+          </Link>
+        </div>
+      ) : null}
+    </>
+  );
+}

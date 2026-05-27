@@ -1,0 +1,27 @@
+{
+  "name": "@vedaai/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.0",
+    "@vedaai/config": "workspace:*",
+    "@vedaai/types": "workspace:*",
+    "@vedaai/validation": "workspace:*",
+    "bullmq": "^5.58.4",
+    "dotenv": "^16.5.0",
+    "ioredis": "5.10.1",
+    "mongoose": "^8.13.2",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

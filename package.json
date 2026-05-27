@@ -1,0 +1,17 @@
+{
+  "name": "vedaai",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel --filter @vedaai/web --filter @vedaai/api --filter @vedaai/worker dev",
+    "dev:web": "pnpm --filter @vedaai/web dev",
+    "dev:api": "pnpm --filter @vedaai/api dev",
+    "dev:worker": "pnpm --filter @vedaai/worker dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm --filter @vedaai/web lint",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@9.15.0"
+}
