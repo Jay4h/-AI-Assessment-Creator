@@ -1,7 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import type { FormState } from "./validation";
+import { getServerApiUrl } from "@/lib/api/config";
+import type { FormState } from "@/lib/validation/assignment-form";
 
 export async function submitAssignment(
   _prev: FormState,
@@ -14,7 +15,6 @@ export async function submitAssignment(
   const additionalInstructions = String(formData.get("additionalInstructions") ?? "").trim();
   const rowCount = Number(formData.get("rowCount") ?? 0);
 
-  // Validate
   const errors: Record<string, string> = {};
   if (!title || title.length < 3) errors.title = "Title must be at least 3 characters";
   if (!subject || subject.length < 2) errors.subject = "Subject is required";
@@ -37,11 +37,9 @@ export async function submitAssignment(
     return { ok: false, errors };
   }
 
-  // POST to the API
-  const apiUrl = process.env.API_URL ?? "http://localhost:4001";
   let assignmentId: string;
   try {
-    const res = await fetch(`${apiUrl}/api/assignments`, {
+    const res = await fetch(`${getServerApiUrl()}/api/assignments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -76,9 +74,8 @@ export async function submitAssignment(
 
 export async function deleteAssignment(assignmentId: string) {
   const { revalidatePath } = await import("next/cache");
-  const apiUrl = process.env.API_URL ?? "http://localhost:4001";
   try {
-    const res = await fetch(`${apiUrl}/api/assignments/${assignmentId}`, {
+    const res = await fetch(`${getServerApiUrl()}/api/assignments/${assignmentId}`, {
       method: "DELETE",
     });
 
@@ -88,8 +85,9 @@ export async function deleteAssignment(assignmentId: string) {
 
     revalidatePath("/assignments");
     return { ok: true };
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to delete assignment";
     console.error("[actions] Failed to delete assignment", err);
-    return { ok: false, error: err.message || "Failed to delete assignment" };
+    return { ok: false, error: message };
   }
 }

@@ -3,8 +3,8 @@
 import { useState, useTransition, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { deleteAssignment } from "@/lib/actions";
-import type { AssignmentSummary } from "@/lib/fetch-assignments";
+import { deleteAssignment } from "@/lib/actions/assignments";
+import type { AssignmentSummary } from "@/lib/api/assignments";
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; dot: string; label: string }> = {
   queued:     { bg: "bg-amber-50",   text: "text-amber-700",  dot: "bg-amber-400",  label: "Queued" },

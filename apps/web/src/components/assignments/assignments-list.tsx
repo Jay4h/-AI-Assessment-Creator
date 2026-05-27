@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { AssignmentCard } from "./assignment-card";
-import type { AssignmentSummary } from "@/lib/fetch-assignments";
+import type { AssignmentSummary } from "@/lib/api/assignments";
 
 export function AssignmentsList({ assignments }: { assignments: AssignmentSummary[] }) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -77,16 +77,17 @@ export function AssignmentsList({ assignments }: { assignments: AssignmentSummar
         </div>
       )}
 
-      {/* Floating Action Button (FAB) — Visible at Bottom Center on both mobile and desktop */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
+      {/* FAB — mobile: + icon above bottom tab bar; desktop: centered pill */}
+      <div className="fixed bottom-[5.75rem] right-4 z-[55] lg:bottom-6 lg:left-1/2 lg:right-auto lg:-translate-x-1/2">
         <Link
           href="/assignments/create"
-          className="inline-flex items-center gap-2 rounded-full bg-[#181818] px-6 py-3.5 text-sm font-semibold text-white shadow-[0px_8px_24px_rgba(0,0,0,0.16)] transition-all hover:scale-105 active:scale-95 hover:bg-[#282828]"
+          aria-label="Create Assignment"
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-[#181818] text-white shadow-[0px_8px_24px_rgba(0,0,0,0.2)] transition-all hover:bg-[#282828] active:scale-95 lg:h-auto lg:w-auto lg:inline-flex lg:gap-2 lg:rounded-full lg:px-6 lg:py-3.5 lg:text-sm lg:font-semibold lg:hover:scale-105"
         >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
-            <path d="M7 2.5V11.5M2.5 7H11.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden className="shrink-0">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
           </svg>
-          Create Assignment
+          <span className="hidden lg:inline">Create Assignment</span>
         </Link>
       </div>
     </div>

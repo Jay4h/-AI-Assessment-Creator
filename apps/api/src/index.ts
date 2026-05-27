@@ -7,14 +7,14 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 
-import { getEnv } from "@vedaai/config";
+import { getApiEnv } from "@vedaai/config";
 import { connectMongo } from "./db/mongo";
 import { createRedisConnection } from "./queue/connection";
 import { createQueues } from "./queue/queues";
 import { createApiServer } from "./server";
 
 async function bootstrap() {
-  const env = getEnv();
+  const env = getApiEnv(process.env);
   await connectMongo(env.MONGODB_URI);
 
   const redis = createRedisConnection(env.REDIS_URL);

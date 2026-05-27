@@ -1,16 +1,14 @@
 "use server";
 
 import type { QuestionPaper } from "@vedaai/types";
+import { getServerApiUrl } from "./config";
 
 export async function fetchAssignmentOutput(
   assignmentId: string,
 ): Promise<{ status: string; output: QuestionPaper | null }> {
-  const apiUrl = process.env.API_URL ?? "http://localhost:4001";
   try {
     const res = await fetch(
-      `${apiUrl}/api/assignments/${assignmentId}/output`,
-      // no-store so this is always fresh; this action is only called after a
-      // "completed" socket event so there's no stale-cache risk.
+      `${getServerApiUrl()}/api/assignments/${assignmentId}/output`,
       { cache: "no-store" },
     );
 

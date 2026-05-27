@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { DashboardShell } from "@/components/dashboard-shell";
-import { AssignmentForm } from "@/components/assignment-form";
+import { DashboardShell } from "@/components/layout";
+import { AssignmentForm } from "@/components/assignments";
 
 export const metadata: Metadata = {
   title: "Create Assignment",

@@ -1,21 +1,11 @@
 "use client";
 
-/**
- * Headless subscriber component that manages the Socket.IO lifecycle for a
- * single assignment.  Renders null; status updates flow into the
- * generationStatusStore (Zustand) so any sibling component can react without
- * prop-drilling.
- *
- * The single useEffect here is the only legitimate place in the codebase for
- * this pattern — it manages an imperative push-event subscription that
- * genuinely requires setup / teardown and cannot be replaced by a Server
- * Component or Server Action.
- */
+/** Subscribes to Socket.IO generation events for one assignment (client-only). */
 
 import { useEffect } from "react";
 import { io } from "socket.io-client";
 import { SOCKET_EVENTS } from "@vedaai/websocket";
-import { generationStatusStore } from "@/lib/generation-status-store";
+import { generationStatusStore } from "@/lib/stores/generation-status-store";
 import type { GenerationProgressEvent } from "@vedaai/types";
 
 interface Props {

@@ -1,16 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { DashboardShell } from "@/components/dashboard-shell";
-import { fetchAssignments } from "@/lib/fetch-assignments";
-import type { AssignmentSummary } from "@/lib/fetch-assignments";
+import { DashboardShell } from "@/components/layout";
+import { AssignmentsList } from "@/components/assignments";
+import { fetchAssignments } from "@/lib/api/assignments";
 
 export const metadata: Metadata = {
   title: "Assignments",
   description:
     "View and create AI-powered assignments for your students with VedaAI.",
 };
-
-import { AssignmentsList } from "@/components/assignments-list";
 
 export default async function AssignmentsPage() {
   const assignments = await fetchAssignments();

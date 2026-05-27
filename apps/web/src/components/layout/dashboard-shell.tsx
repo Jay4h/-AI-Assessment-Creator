@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Sidebar, TopBar } from "@vedaai/ui";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -39,6 +40,25 @@ export function DashboardShell({
   const isLibraryActive = pathname.startsWith("/library");
   const isToolkitActive = pathname.startsWith("/toolkit");
 
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileSidebarOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileSidebarOpen(false);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [mobileSidebarOpen]);
+
   return (
     <div className="flex min-h-screen flex-col gap-2 p-2 sm:gap-3 sm:p-3 lg:flex-row lg:items-start pb-24 lg:pb-3 print:p-0 print:pb-0 print:gap-0 print:bg-white">
       {/* Sidebar — desktop only, sticky full height */}
@@ -50,7 +70,7 @@ export function DashboardShell({
       <div className="lg:hidden w-full print:hidden">
         <nav className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 shadow-[0px_4px_16px_rgba(0,0,0,0.06)]">
           {/* Mobile brand - Dark square logo */}
-          <Link href="/assignments" className="flex items-center gap-2">
+          <Link href="/assignments" prefetch={false} className="flex items-center gap-2">
             <span
               className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#181818] text-white"
               aria-hidden
@@ -77,23 +97,21 @@ export function DashboardShell({
             </button>
 
             {/* Avatar Profile */}
-            <div className="relative h-8 w-8 overflow-hidden rounded-full border border-[#f0f0f0]">
-              <svg viewBox="0 0 32 32" fill="none" className="h-full w-full">
-                <rect width="32" height="32" fill="#FFEAE2"/>
-                {/* Torso */}
-                <rect x="8" y="20" width="16" height="10" rx="8" fill="#FF7950"/>
-                {/* Head */}
-                <circle cx="16" cy="14" r="6" fill="#FDBA74"/>
-                {/* Hair */}
-                <circle cx="16" cy="10" r="3" fill="#B45309"/>
-              </svg>
+            <div className="relative h-8 w-8 overflow-hidden rounded-full border border-[#f0f0f0] bg-[#f0e8e0]">
+              <img
+                src="/avatar.png"
+                alt="User avatar"
+                className="h-full w-full object-cover"
+              />
             </div>
 
-            {/* Hamburger menu */}
+            {/* Hamburger — opens sidebar drawer on mobile */}
             <button
               type="button"
               className="flex h-9 w-9 items-center justify-center rounded-full text-[#303030] hover:bg-[#f6f6f6]"
-              aria-label="Menu"
+              aria-label="Open navigation menu"
+              aria-expanded={mobileSidebarOpen}
+              onClick={() => setMobileSidebarOpen(true)}
             >
               <IconMenu />
             </button>
@@ -110,7 +128,41 @@ export function DashboardShell({
         <main className="flex-1 print:p-0 print:m-0">{children}</main>
       </div>
 
-      {/* Floating Bottom Tab Bar — Mobile View only */}
+      {/* Mobile sidebar drawer */}
+      {mobileSidebarOpen ? (
+        <div className="fixed inset-0 z-[60] lg:hidden print:hidden" role="dialog" aria-modal="true" aria-label="Navigation menu">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/40"
+            aria-label="Close navigation menu"
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+          <div className="absolute inset-y-0 left-0 flex w-[min(304px,88vw)] flex-col p-3">
+            <div className="flex h-[calc(100vh-24px)] flex-col">
+              <div className="mb-2 flex justify-end">
+                <button
+                  type="button"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#303030] shadow-sm"
+                  aria-label="Close navigation menu"
+                  onClick={() => setMobileSidebarOpen(false)}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="min-h-0 flex-1">
+                <Sidebar
+                  className="h-full w-full shadow-none"
+                  onNavigate={() => setMobileSidebarOpen(false)}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Floating bottom tab bar — quick nav on mobile (Home, Assignments, Library, AI Toolkit) */}
       <div className="fixed bottom-4 left-4 right-4 z-50 lg:hidden print:hidden">
         <div className="flex h-16 items-center justify-between rounded-[24px] bg-[#181818] px-6 py-2 shadow-[0px_8px_32px_rgba(0,0,0,0.24)]">
           {/* Tab 1: Home */}
@@ -136,6 +188,7 @@ export function DashboardShell({
           {/* Tab 2: Assignments (Active dynamically on /assignments) */}
           <Link
             href="/assignments"
+            prefetch={false}
             className={`flex flex-col items-center gap-1 text-[10px] ${
               isAssignmentsActive
                 ? "font-semibold text-white"

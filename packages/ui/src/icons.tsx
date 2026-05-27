@@ -32,20 +32,19 @@ export function IconFileText({ className, size = 20 }: IconProps) {
   );
 }
 
-export function IconBook({ className, size = 20 }: IconProps) {
+export function IconBook({ className }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" className={className} aria-hidden>
-      <path d="M3.5 3.5C3.5 3.5 5.5 3 10 3C14.5 3 16.5 3.5 16.5 3.5V16.5C16.5 16.5 14.5 16 10 16C5.5 16 3.5 16.5 3.5 16.5V3.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
-      <path d="M10 3V16" stroke="currentColor" strokeWidth="1.5"/>
+    <svg width="20" height="20" viewBox="0 0 20 20" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M3.33333 16.25C3.33333 15.6975 3.55282 15.1676 3.94352 14.7769C4.33422 14.3862 4.86413 14.1667 5.41666 14.1667H16.6667M3.33333 16.25C3.33333 16.8026 3.55282 17.3325 3.94352 17.7232C4.33422 18.1139 4.86413 18.3334 5.41666 18.3334H16.6667V1.66669H5.41666C4.86413 1.66669 4.33422 1.88618 3.94352 2.27688C3.55282 2.66758 3.33333 3.19749 3.33333 3.75002V16.25Z" stroke="#5E5E5E" strokeOpacity="0.8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 }
 
-export function IconLibrary({ className, size = 20 }: IconProps) {
+export function IconLibrary({ className }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" className={className} aria-hidden>
-      <rect x="3" y="3" width="5" height="14" rx="1" stroke="currentColor" strokeWidth="1.5"/>
-      <rect x="10" y="3" width="7" height="14" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
+    <path d="M17.675 13.2417C17.1449 14.4954 16.3157 15.6002 15.2599 16.4594C14.2041 17.3187 12.954 17.9062 11.6187 18.1707C10.2834 18.4351 8.90369 18.3685 7.60013 17.9765C6.29656 17.5845 5.10886 16.8792 4.14086 15.9222C3.17285 14.9652 2.45402 13.7856 2.0472 12.4866C1.64039 11.1876 1.55797 9.80874 1.80717 8.47053C2.05637 7.13232 2.62959 5.87553 3.47671 4.81003C4.32384 3.74453 5.41907 2.90277 6.66667 2.35834" stroke="#5E5E5E" strokeOpacity="0.8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M18.3333 10C18.3333 8.90567 18.1178 7.82204 17.699 6.81099C17.2802 5.79994 16.6664 4.88129 15.8926 4.10746C15.1187 3.33364 14.2001 2.71981 13.189 2.30102C12.178 1.88224 11.0943 1.66669 10 1.66669V10H18.3333Z" stroke="#5E5E5E" strokeOpacity="0.8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 }
@@ -159,8 +158,10 @@ export function IconDownload({ className, size = 20 }: IconProps) {
 
 export function IconSparkle({ className, size = 16 }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className} aria-hidden>
-      <path d="M8 1L9.2 5.8H14L10.4 8.5L11.6 13.3L8 10.6L4.4 13.3L5.6 8.5L2 5.8H6.8L8 1Z" fill="currentColor"/>
+    <svg width={size} height={size} viewBox="0 0 19 18" fill="none" className={className} xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <path fillRule="evenodd" clipRule="evenodd" d="M4.63783 8.63783L6.18377 4H7.13246L8.6784 8.63783L13.3162 10.1838V11.1325L8.6784 12.6784L7.13246 17.3162H6.18377L4.63783 12.6784L0 11.1325V10.1838L4.63783 8.63783Z" fill="white"/>
+      <path fillRule="evenodd" clipRule="evenodd" d="M13.3878 2.38783L14.1838 0H15.1325L15.9284 2.38783L18.3162 3.18377V4.13246L15.9284 4.9284L15.1325 7.31623H14.1838L13.3878 4.9284L11 4.13246V3.18377L13.3878 2.38783Z" fill="white"/>
     </svg>
   );
 }
+

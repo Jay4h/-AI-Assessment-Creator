@@ -1,3 +1,4 @@
+import { getServerApiUrl } from "./config";
 
 export interface AssignmentSummary {
   id: string;
@@ -10,9 +11,8 @@ export interface AssignmentSummary {
 }
 
 export async function fetchAssignments(): Promise<AssignmentSummary[]> {
-  const apiUrl = process.env.API_URL ?? "http://localhost:4001";
   try {
-    const res = await fetch(`${apiUrl}/api/assignments`, {
+    const res = await fetch(`${getServerApiUrl()}/api/assignments`, {
       cache: "no-store",
     });
     if (!res.ok) return [];

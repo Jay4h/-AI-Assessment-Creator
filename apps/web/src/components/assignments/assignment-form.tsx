@@ -3,8 +3,8 @@
 import { useActionState, useMemo, useRef } from "react";
 import Link from "next/link";
 import { QUESTION_TYPE_OPTIONS } from "@vedaai/content";
-import { submitAssignment } from "@/lib/actions";
-import { initialFormState } from "@/lib/validation";
+import { submitAssignment } from "@/lib/actions/assignments";
+import { initialFormState } from "@/lib/validation/assignment-form";
 import {
   AssignmentFormProvider,
   useAssignmentStore,
@@ -150,6 +150,7 @@ function AssignmentFormInner() {
         <div className="flex items-center gap-3">
           <Link
             href="/assignments"
+            prefetch={false}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-[0px_4px_12px_rgba(0,0,0,0.05)] text-[#303030] transition-opacity hover:opacity-85 lg:hidden"
             aria-label="Go back"
           >
@@ -455,6 +456,7 @@ function AssignmentFormInner() {
       <div className="flex items-center justify-between gap-4 pt-2">
         <Link
           href="/assignments"
+          prefetch={false}
           className="inline-flex items-center justify-center gap-2 rounded-full border border-[#e8e8e8] bg-white px-6 py-3 text-[15px] font-semibold text-[#303030] transition-colors hover:bg-[#f6f6f6] shadow-sm flex-1 max-w-[160px] h-12"
         >
           <IconArrowLeft />

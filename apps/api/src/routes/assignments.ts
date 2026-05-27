@@ -25,16 +25,25 @@ export function createAssignmentsRouter(generationQueue: Queue<GenerationJobData
       status: "queued",
     });
 
-    await generationQueue.add("generate-assessment", {
-      assignmentId: String(created._id),
-      payload: {
-        ...parsed.data,
-        questionTypes: parsed.data.questionTypes.map((row, idx) => ({
-          ...row,
-          id: row.id ?? `row-${idx + 1}`,
-        })),
+    await generationQueue.add(
+      "generate-assessment",
+      {
+        assignmentId: String(created._id),
+        payload: {
+          ...parsed.data,
+          questionTypes: parsed.data.questionTypes.map((row, idx) => ({
+            ...row,
+            id: row.id ?? `row-${idx + 1}`,
+          })),
+        },
       },
-    });
+      {
+        attempts: 3,
+        backoff: { type: "exponential", delay: 5000 },
+        removeOnComplete: 50,
+        removeOnFail: 20,
+      },
+    );
 
     return res.status(202).json({
       assignmentId: String(created._id),
@@ -121,17 +130,26 @@ export function createAssignmentsRouter(generationQueue: Queue<GenerationJobData
     ).lean()) as any;
     if (!assignment) return res.status(404).json({ error: "Assignment not found" });
 
-    await generationQueue.add("regenerate-assessment", {
-      assignmentId: String(assignment._id),
-      payload: {
-        title: assignment.title,
-        subject: assignment.subject,
-        className: assignment.className,
-        dueDate: assignment.dueDate,
-        additionalInstructions: assignment.additionalInstructions,
-        questionTypes: assignment.questionTypes,
+    await generationQueue.add(
+      "regenerate-assessment",
+      {
+        assignmentId: String(assignment._id),
+        payload: {
+          title: assignment.title,
+          subject: assignment.subject,
+          className: assignment.className,
+          dueDate: assignment.dueDate,
+          additionalInstructions: assignment.additionalInstructions,
+          questionTypes: assignment.questionTypes,
+        },
       },
-    });
+      {
+        attempts: 3,
+        backoff: { type: "exponential", delay: 5000 },
+        removeOnComplete: 50,
+        removeOnFail: 20,
+      },
+    );
 
     return res.status(202).json({
       assignmentId: String(assignment._id),

@@ -1,19 +1,19 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { QuestionPaperView } from "@vedaai/ui";
 import { GenerationStatusSubscriber } from "./generation-status-subscriber";
-import { useAssignmentStatus } from "@/lib/generation-status-store";
-import { fetchAssignmentOutput } from "@/lib/fetch-output";
-import { fetchAssignmentStatus } from "@/lib/fetch-status";
+import { useAssignmentStatus } from "@/lib/stores/generation-status-store";
+import { fetchAssignmentOutput } from "@/lib/api/output";
 import type { QuestionPaper } from "@vedaai/types";
 
 interface Props {
   assignmentId: string;
+  initialPaper?: QuestionPaper | null;
+  initialStatus?: string;
 }
 
-/** Spinner rings */
 function Spinner() {
   return (
     <div className="relative mx-auto h-16 w-16">
@@ -22,7 +22,6 @@ function Spinner() {
   );
 }
 
-/** Animated progress bar */
 function ProgressBar({ progress }: { progress: number }) {
   return (
     <div className="h-2 w-full overflow-hidden rounded-full bg-[#f0f0f0]">
@@ -44,51 +43,66 @@ const STATUS_LABELS: Record<string, string> = {
   failed: "Failed",
 };
 
-export function OutputClient({ assignmentId }: Props) {
-  const { status, message, progress } = useAssignmentStatus(assignmentId);
-  const [paper, setPaper] = useState<QuestionPaper | null>(null);
+export function OutputClient({
+  assignmentId,
+  initialPaper = null,
+  initialStatus,
+}: Props) {
+  const { status: socketStatus, message, progress } = useAssignmentStatus(assignmentId);
+  const [paper, setPaper] = useState<QuestionPaper | null>(initialPaper);
+  const [resolvedStatus, setResolvedStatus] = useState<string | null>(initialStatus ?? null);
   const [isPending, startTransition] = useTransition();
 
-  // Race-condition guard: check DB status on mount.
-  // If the worker already finished before our socket subscribed,
-  // the "completed" socket event was missed — status stays "idle" forever.
-  // This one-shot poll bypasses the socket and fetches the paper directly.
-  useEffect(() => {
-    fetchAssignmentStatus(assignmentId).then((s) => {
-      if (s?.status === "completed" && paper === null) {
-        startTransition(async () => {
-          const result = await fetchAssignmentOutput(assignmentId);
-          if (result.output) setPaper(result.output);
-        });
+  const loadingRef = useRef(false);
+  const loadedRef = useRef(!!initialPaper);
+
+  const displayStatus = resolvedStatus ?? socketStatus;
+
+  const loadOutput = useCallback(() => {
+    if (loadingRef.current || loadedRef.current) return;
+
+    loadingRef.current = true;
+    startTransition(async () => {
+      try {
+        const result = await fetchAssignmentOutput(assignmentId);
+        setResolvedStatus(result.status);
+        if (result.output) {
+          setPaper(result.output);
+          loadedRef.current = true;
+        }
+      } finally {
+        loadingRef.current = false;
       }
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // intentionally run once on mount only
+  }, [assignmentId]);
 
-  // When the socket signals completion, fetch the paper via Server Action
+  // One-shot check on mount when SSR did not provide the paper
   useEffect(() => {
-    if (status !== "completed" || paper !== null) return;
-    startTransition(async () => {
-      const result = await fetchAssignmentOutput(assignmentId);
-      if (result.output) setPaper(result.output);
-    });
-  }, [status, assignmentId, paper]);
+    if (initialPaper) return;
+    loadOutput();
+  }, [initialPaper, loadOutput]);
 
-  const isTerminal = status === "completed" || status === "failed";
+  // Socket signaled completion — fetch paper once
+  useEffect(() => {
+    if (socketStatus !== "completed" || paper !== null) return;
+    loadOutput();
+  }, [socketStatus, paper, loadOutput]);
+
+  const needsSocket =
+    !initialPaper &&
+    displayStatus !== "completed" &&
+    displayStatus !== "failed";
 
   return (
     <>
-      {/* Headless socket subscriber — manages Socket.IO lifecycle */}
-      <GenerationStatusSubscriber assignmentId={assignmentId} />
+      {needsSocket ? <GenerationStatusSubscriber assignmentId={assignmentId} /> : null}
 
-      {/* -------- Completed: render the paper -------- */}
       {paper ? (
         <div className="mx-auto max-w-[1100px] rounded-[32px] bg-[#5e5e5e] p-2 sm:p-4 lg:p-5 print:bg-white print:p-0 print:rounded-none">
           <QuestionPaperView paper={paper} />
         </div>
       ) : null}
 
-      {/* Loading skeleton while paper is fetching */}
       {!paper && isPending ? (
         <div className="mx-auto max-w-[1100px] animate-pulse space-y-4 rounded-3xl bg-white p-8">
           <div className="h-6 w-2/3 rounded bg-[#f0f0f0]" />
@@ -101,14 +115,13 @@ export function OutputClient({ assignmentId }: Props) {
         </div>
       ) : null}
 
-      {/* -------- In-progress: show status card -------- */}
-      {!paper && status !== "completed" && status !== "failed" ? (
+      {!paper && displayStatus !== "completed" && displayStatus !== "failed" ? (
         <div className="mx-auto flex max-w-[480px] flex-col items-center gap-8 rounded-3xl bg-white p-8 shadow-[0px_20px_30px_rgba(146,146,146,0.19)] sm:p-10">
           <Spinner />
 
           <div className="w-full space-y-3 text-center">
             <p className="text-lg font-bold tracking-[-0.04em] text-[#303030]">
-              {STATUS_LABELS[status] ?? "Processing…"}
+              {STATUS_LABELS[displayStatus] ?? "Processing…"}
             </p>
             <p className="text-[15px] text-[rgba(94,94,94,0.8)]">{message}</p>
             <ProgressBar progress={progress} />
@@ -121,10 +134,8 @@ export function OutputClient({ assignmentId }: Props) {
         </div>
       ) : null}
 
-      {/* -------- Failed state -------- */}
-      {status === "failed" ? (
+      {displayStatus === "failed" && !paper ? (
         <div className="mx-auto flex max-w-[480px] flex-col items-center gap-6 rounded-3xl bg-white p-8 shadow-[0px_20px_30px_rgba(146,146,146,0.19)] text-center sm:p-10">
-          {/* Error icon */}
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden>
               <circle cx="16" cy="16" r="14" stroke="#ef4444" strokeWidth="2"/>

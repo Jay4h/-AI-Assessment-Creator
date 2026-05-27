@@ -1,4 +1,4 @@
-export type Difficulty = "easy" | "moderate" | "hard" | "challenging";
+export type Difficulty = "easy" | "moderate" | "medium" | "hard" | "challenging";
 
 export type QuestionType =
   | "multiple_choice"
@@ -30,11 +30,14 @@ export interface QuestionPaperQuestion {
   text: string;
   difficulty: Difficulty;
   marks: number;
+  options?: string[]; // MCQ only — A), B), C), D)
 }
 
 export interface QuestionPaperSection {
   id: string;
   title: string;
+  /** e.g. "Short Answer Questions", "Multiple Choice Questions" */
+  typeLabel?: string;
   instruction: string;
   questions: QuestionPaperQuestion[];
 }
@@ -49,7 +52,7 @@ export interface QuestionPaper {
   generalInstruction: string;
   introMessage: string;
   sections: QuestionPaperSection[];
-  answerKey?: { number: number; answer: string }[];
+  answerKey?: { number: number; sectionId?: string; answer: string }[];
 }
 
 export type GenerationJobStatus =

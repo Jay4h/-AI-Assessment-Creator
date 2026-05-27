@@ -62,25 +62,6 @@ export function createApiServer({
     );
   });
 
-  // completed — look up job to get assignmentId, then emit final event
-  queueEvents.on("completed", async ({ jobId }) => {
-    try {
-      const job = await generationQueue.getJob(jobId);
-      if (!job) return;
-      const { assignmentId } = job.data;
-      const payload: GenerationProgressEvent = {
-        assignmentId,
-        status: "completed",
-        message: "Your question paper is ready!",
-        progress: 100,
-        timestamp: new Date().toISOString(),
-      };
-      io.to(SOCKET_EVENTS.assignmentRoom(assignmentId)).emit(SOCKET_EVENTS.status, payload);
-    } catch (err) {
-      console.error("[api] QueueEvents completed handler error", err);
-    }
-  });
-
   // failed — emit a failed status event so the client can show an error
   queueEvents.on("failed", async ({ jobId, failedReason }) => {
     try {

@@ -6,7 +6,7 @@ import {
   createAssignmentStore,
   type AssignmentStore,
   type AssignmentStoreApi,
-} from "@/lib/assignment-store";
+} from "@/lib/stores/assignment-store";
 
 const AssignmentStoreContext = createContext<AssignmentStoreApi | null>(null);
 

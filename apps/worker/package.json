@@ -9,7 +9,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.0",
     "@vedaai/config": "workspace:*",
     "@vedaai/types": "workspace:*",
     "@vedaai/validation": "workspace:*",
@@ -17,6 +16,7 @@
     "dotenv": "^16.5.0",
     "ioredis": "5.10.1",
     "mongoose": "^8.13.2",
+    "openai": "^4.77.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {

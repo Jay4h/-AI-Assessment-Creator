@@ -10,4 +10,5 @@ dist
 .env*
 *.tsbuildinfo
 coverage
-.vscode
+.vscode
+project_overview.md

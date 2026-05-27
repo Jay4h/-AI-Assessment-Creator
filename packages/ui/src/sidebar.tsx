@@ -23,16 +23,26 @@ const iconComponents = {
 export function Sidebar({
   ctaHref = "/assignments/create",
   ctaLabel = "Create Assignment",
+  onNavigate,
+  className,
 }: {
   ctaHref?: string;
   ctaLabel?: string;
+  /** Called when a nav link is clicked (e.g. close mobile drawer) */
+  onNavigate?: () => void;
+  className?: string;
 }) {
   return (
-    <aside className="flex h-full w-[304px] shrink-0 flex-col justify-between rounded-2xl bg-white p-6 shadow-[0px_16px_24px_rgba(0,0,0,0.12),0px_32px_24px_rgba(0,0,0,0.2)]">
+    <aside
+      className={clsx(
+        "flex h-full w-[304px] shrink-0 flex-col justify-between rounded-2xl bg-white p-6 shadow-[0px_16px_24px_rgba(0,0,0,0.12),0px_32px_24px_rgba(0,0,0,0.2)]",
+        className,
+      )}
+    >
       {/* Top section */}
       <div className="flex flex-col gap-10">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-3" onClick={onNavigate}>
           {/* Orange gradient V mark */}
           <span
             className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[10px]"
@@ -68,11 +78,12 @@ export function Sidebar({
         {/* Create Assignment CTA */}
         <Link
           href={ctaHref}
+          onClick={onNavigate}
           className="relative flex h-[42px] items-center justify-center gap-2 overflow-hidden rounded-full border-4 border-[#ff7950] bg-[#272727] text-sm font-medium text-white transition-opacity hover:opacity-90"
         >
           {/* inner glow */}
           <span className="pointer-events-none absolute inset-0 rounded-full shadow-[inset_0px_-1px_3.5px_0px_rgba(177,177,177,0.6),inset_0px_0px_34.5px_0px_rgba(255,255,255,0.25)]" />
-          <IconSparkle size={14} className="text-white" />
+          <IconSparkle className="text-white" />
           <span>{ctaLabel}</span>
         </Link>
 
@@ -85,6 +96,8 @@ export function Sidebar({
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={item.href === "/assignments" ? false : undefined}
+                onClick={onNavigate}
                 className={clsx(
                   "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] transition-colors",
                   isActive
@@ -109,28 +122,23 @@ export function Sidebar({
       <div className="flex flex-col gap-2">
         <Link
           href="/settings"
+          onClick={onNavigate}
           className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] text-[#5e5e5e] transition-colors hover:bg-[#f6f6f6] hover:text-[#303030]"
         >
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#f0f0f0] text-[#5e5e5e] transition-colors group-hover:bg-[#e8e8e8] group-hover:text-[#303030]">
             <IconSettings size={18} />
-          </span>
+          
           <span className="tracking-[-0.04em] font-medium">Settings</span>
         </Link>
 
         {/* School profile card */}
         <div className="mt-1 flex items-center gap-3 rounded-2xl bg-[#f0f0f0] p-3">
           {/* School mascot avatar */}
-          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full bg-amber-100">
-            {/* Generated avatar — a stylised school crest */}
-            <svg viewBox="0 0 56 56" fill="none" className="h-full w-full">
-              <rect width="56" height="56" fill="#FEF3C7"/>
-              <ellipse cx="28" cy="24" rx="12" ry="14" fill="#D97706"/>
-              <ellipse cx="28" cy="23" rx="9" ry="10" fill="#FBBF24"/>
-              <path d="M20 32 Q28 40 36 32" stroke="#D97706" strokeWidth="2" fill="none"/>
-              <text x="28" y="27" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#92400E">D</text>
-              <rect x="14" y="38" width="28" height="12" rx="3" fill="#1E40AF"/>
-              <text x="28" y="47.5" textAnchor="middle" fontSize="7" fontWeight="bold" fill="white">DPS</text>
-            </svg>
+          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full bg-[#f0e8e0]">
+            <img
+              src="/avatar.png"
+              alt="School avatar"
+              className="h-full w-full object-cover"
+            />
           </div>
           <div className="min-w-0">
             <p className="truncate text-[15px] font-bold text-[#303030]">Delhi Public School</p>
