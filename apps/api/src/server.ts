@@ -46,6 +46,9 @@ export function createApiServer({
   const queueEventsRedis = new IORedis(redisUrl, {
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
+    ...(redisUrl.startsWith("rediss://") && {
+      tls: { rejectUnauthorized: false },
+    }),
   });
 
   const queueEvents = new QueueEvents(QUEUE_NAMES.generation, {

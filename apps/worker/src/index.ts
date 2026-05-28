@@ -114,6 +114,9 @@ async function bootstrap() {
   const redis = new IORedis(env.REDIS_URL, {
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
+    ...(env.REDIS_URL.startsWith("rediss://") && {
+      tls: { rejectUnauthorized: false },
+    }),
   });
 
   const worker = new Worker(
