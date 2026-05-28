@@ -15,7 +15,11 @@ export const createAssignmentSchema = z.object({
   dueDate: z.string().min(1),
   additionalInstructions: z.string().optional().default(""),
   questionTypes: z.array(questionTypeRowSchema).min(1),
+  /** base64 data URL or raw base64 string of an uploaded jpg/png */
+  imageBase64: z.string().optional(),
+  imageMimeType: z.enum(["image/jpeg", "image/png"]).optional(),
 });
+
 
 export const assignmentIdSchema = z.object({
   assignmentId: z.string().min(1),

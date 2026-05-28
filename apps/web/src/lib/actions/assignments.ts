@@ -14,6 +14,12 @@ export async function submitAssignment(
   const dueDate = String(formData.get("dueDate") ?? "").trim();
   const additionalInstructions = String(formData.get("additionalInstructions") ?? "").trim();
   const rowCount = Number(formData.get("rowCount") ?? 0);
+  const imageBase64Raw = formData.get("imageBase64");
+  const imageMimeTypeRaw = formData.get("imageMimeType");
+  const imageBase64 = imageBase64Raw ? String(imageBase64Raw) : undefined;
+  const imageMimeType = (imageMimeTypeRaw === "image/jpeg" || imageMimeTypeRaw === "image/png")
+    ? imageMimeTypeRaw
+    : undefined;
 
   const errors: Record<string, string> = {};
   if (!title || title.length < 3) errors.title = "Title must be at least 3 characters";
@@ -49,6 +55,7 @@ export async function submitAssignment(
         dueDate,
         additionalInstructions,
         questionTypes,
+        ...(imageBase64 ? { imageBase64, imageMimeType } : {}),
       }),
     });
 

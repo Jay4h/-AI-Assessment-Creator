@@ -35,6 +35,8 @@ export function createAssignmentsRouter(generationQueue: Queue<GenerationJobData
             ...row,
             id: row.id ?? `row-${idx + 1}`,
           })),
+          imageBase64: parsed.data.imageBase64,
+          imageMimeType: parsed.data.imageMimeType,
         },
       },
       {

@@ -19,6 +19,7 @@ export interface AssignmentStore {
   setClassName: (className: string) => void;
   setDueDate: (dueDate: string) => void;
   setFileName: (fileName: string | undefined) => void;
+  setImage: (opts: { fileName: string; imageBase64: string; imageMimeType: "image/jpeg" | "image/png" } | undefined) => void;
   setInstructions: (text: string) => void;
   updateRow: (id: string, patch: Partial<QuestionTypeRow>) => void;
   addRow: () => void;
@@ -45,6 +46,15 @@ export function createAssignmentStore(initial?: Partial<AssignmentDraft>) {
       set((s) => ({ draft: { ...s.draft, dueDate } })),
     setFileName: (fileName) =>
       set((s) => ({ draft: { ...s.draft, fileName } })),
+    setImage: (opts) =>
+      set((s) => ({
+        draft: {
+          ...s.draft,
+          fileName: opts?.fileName,
+          imageBase64: opts?.imageBase64,
+          imageMimeType: opts?.imageMimeType,
+        },
+      })),
     setInstructions: (additionalInstructions) =>
       set((s) => ({ draft: { ...s.draft, additionalInstructions } })),
     updateRow: (id, patch) =>

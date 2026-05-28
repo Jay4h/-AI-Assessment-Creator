@@ -16,7 +16,11 @@ function sectionTypeLabel(type: CreateAssignmentDto["questionTypes"][number]["ty
   }
 }
 
-export function buildSectionPrompt(payload: CreateAssignmentDto, sectionIndex: number): string {
+export function buildSectionPrompt(
+  payload: CreateAssignmentDto,
+  sectionIndex: number,
+  imageContext?: string,
+): string {
   const row = payload.questionTypes[sectionIndex];
   const letter = String.fromCharCode(65 + sectionIndex);
   const totalMarks = payload.questionTypes.reduce(
@@ -28,12 +32,17 @@ export function buildSectionPrompt(payload: CreateAssignmentDto, sectionIndex: n
     ? `\nTeacher notes: ${payload.additionalInstructions.trim()}`
     : "";
 
+  const imageNote =
+    imageContext?.trim()
+      ? `\nReference image context (use as inspiration for question topics/scenarios):\n"""\n${imageContext.trim()}\n"""`
+      : "";
+
   return `Create Section ${letter} of an Indian school exam paper (CBSE / ICSE).
 
 Assignment: "${payload.title}"
 Subject: ${payload.subject}
 Class: ${payload.className}
-Total paper marks: ${totalMarks}${teacherNotes}
+Total paper marks: ${totalMarks}${teacherNotes}${imageNote}
 
 Section requirements:
 - Section id: "${letter}"

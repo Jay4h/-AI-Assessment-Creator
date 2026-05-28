@@ -40,6 +40,70 @@ async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Step 1 — Vision pre-pass (plain chat.completions.create, NO structured output).
+ *
+ * OpenAI's strict structured outputs mode (`zodResponseFormat`) does NOT
+ * support vision/image_url content parts — combining them causes the model to
+ * refuse the request. Instead we run a separate, non-strict vision call first
+ * to extract a text description of the image, then inject that description as
+ * plain text into the structured output prompt in Step 2.
+ */
+export async function extractImageContext(
+  client: OpenAI,
+  model: string,
+  imageBase64: string,
+  imageMimeType: "image/jpeg" | "image/png",
+  subject: string,
+  className: string,
+): Promise<string> {
+  const dataUrl = `data:${imageMimeType};base64,${imageBase64}`;
+
+  try {
+    const res = await client.chat.completions.create(
+      {
+        model,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are an educational content analyser. " +
+              "Describe the content of the provided image concisely (max 200 words) " +
+              "focusing on topics, concepts, diagrams, or questions visible. " +
+              "This description will be used to inspire exam question generation.",
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "image_url",
+                image_url: { url: dataUrl, detail: "low" },
+              },
+              {
+                type: "text",
+                text: `This is an inspirational/reference image for a ${subject} exam for ${className}. Describe its educational content.`,
+              },
+            ],
+          },
+        ],
+        max_tokens: 300,
+        temperature: 0.3,
+      },
+      { timeout: 60_000 },
+    );
+
+    return res.choices[0]?.message?.content?.trim() ?? "";
+  } catch (err) {
+    // Vision pre-pass is best-effort; if it fails, continue without image context
+    console.warn("[worker] Image context extraction failed (non-fatal):", err);
+    return "";
+  }
+}
+
+/**
+ * Step 2 — Structured output parse (strict JSON schema, text-only messages).
+ * The image context string from Step 1 is injected into the user prompt text.
+ */
 async function parseWithSchema<T extends z.ZodType>(
   client: OpenAI,
   model: string,
@@ -95,6 +159,7 @@ export async function generateSection(
   model: string,
   payload: CreateAssignmentDto,
   sectionIndex: number,
+  imageContext?: string,
 ): Promise<GeneratedSection> {
   const row = payload.questionTypes[sectionIndex];
   const letter = String.fromCharCode(65 + sectionIndex);
@@ -104,7 +169,7 @@ export async function generateSection(
     client,
     model,
     `Section ${letter}`,
-    buildSectionPrompt(payload, sectionIndex),
+    buildSectionPrompt(payload, sectionIndex, imageContext),
     schema,
     `section_${letter.toLowerCase()}`,
   );

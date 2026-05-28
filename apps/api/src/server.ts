@@ -28,7 +28,7 @@ export function createApiServer({
   });
 
   app.use(cors({ origin: corsOrigin, credentials: true }));
-  app.use(express.json({ limit: "2mb" }));
+  app.use(express.json({ limit: "20mb" }));
 
   app.use("/health", healthRouter);
   app.use("/api/assignments", createAssignmentsRouter(generationQueue));

@@ -119,7 +119,7 @@ function AssignmentFormInner() {
   const setSubject = useAssignmentStore((s) => s.setSubject);
   const setClassName = useAssignmentStore((s) => s.setClassName);
   const setDueDate = useAssignmentStore((s) => s.setDueDate);
-  const setFileName = useAssignmentStore((s) => s.setFileName);
+  const setImage = useAssignmentStore((s) => s.setImage);
   const setInstructions = useAssignmentStore((s) => s.setInstructions);
   const updateRow = useAssignmentStore((s) => s.updateRow);
   const addRow = useAssignmentStore((s) => s.addRow);
@@ -143,6 +143,12 @@ function AssignmentFormInner() {
       className="mx-auto max-w-[760px] space-y-6 px-2 pb-24 sm:space-y-8"
     >
       <input type="hidden" name="rowCount" value={draft.questionTypes.length} />
+      {draft.imageBase64 && (
+        <>
+          <input type="hidden" name="imageBase64" value={draft.imageBase64} />
+          <input type="hidden" name="imageMimeType" value={draft.imageMimeType ?? "image/jpeg"} />
+        </>
+      )}
 
       {/* Page header */}
       <header className="space-y-4">
@@ -230,31 +236,52 @@ function AssignmentFormInner() {
             </div>
           </div>
 
-          {/* File upload zone */}
+          {/* File upload zone — JPG / PNG only */}
           <div
             className="flex flex-col items-center rounded-2xl border-2 border-dashed border-[#e0e0e0] bg-[#f9f9f9] px-4 py-7 text-center sm:px-10 cursor-pointer hover:bg-[#f6f6f6] transition-colors"
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => {
               e.preventDefault();
               const file = e.dataTransfer.files[0];
-              if (file) setFileName(file.name);
+              if (!file) return;
+              if (!file.type.match(/^image\/(jpeg|png)$/)) return;
+              const reader = new FileReader();
+              reader.onload = () => {
+                const base64 = (reader.result as string).split(",")[1];
+                setImage({
+                  fileName: file.name,
+                  imageBase64: base64,
+                  imageMimeType: file.type as "image/jpeg" | "image/png",
+                });
+              };
+              reader.readAsDataURL(file);
             }}
             onClick={() => fileRef.current?.click()}
           >
             <span className="mb-3.5 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm border border-gray-50">
               <IconCloud />
             </span>
-            <p className="font-semibold text-[#303030] text-[15px]">Choose a file or drag & drop it here</p>
-            <p className="mt-0.5 text-xs text-[#a9a9a9]">JPEG, PNG, up to 10MB</p>
+            <p className="font-semibold text-[#303030] text-[15px]">Choose a file or drag &amp; drop it here</p>
+            <p className="mt-0.5 text-xs text-[#a9a9a9]">JPG, PNG only — up to 10 MB</p>
             <input
               ref={fileRef}
               type="file"
               name="material"
-              accept=".pdf,.png,.jpg,.jpeg,.txt"
+              accept=".jpg,.jpeg,.png"
               className="sr-only"
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                setFileName(file?.name);
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = () => {
+                  const base64 = (reader.result as string).split(",")[1];
+                  setImage({
+                    fileName: file.name,
+                    imageBase64: base64,
+                    imageMimeType: file.type as "image/jpeg" | "image/png",
+                  });
+                };
+                reader.readAsDataURL(file);
               }}
             />
             <button

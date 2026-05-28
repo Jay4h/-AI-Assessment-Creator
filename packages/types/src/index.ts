@@ -20,6 +20,10 @@ export interface AssignmentDraft {
   className: string;
   dueDate: string;
   fileName?: string;
+  /** base64-encoded image (jpg/png) uploaded by the teacher for context */
+  imageBase64?: string;
+  /** MIME type of the uploaded image */
+  imageMimeType?: "image/jpeg" | "image/png";
   questionTypes: QuestionTypeRow[];
   additionalInstructions: string;
 }
@@ -70,6 +74,10 @@ export interface CreateAssignmentInput {
   dueDate: string;
   additionalInstructions?: string;
   questionTypes: QuestionTypeRow[];
+  /** base64-encoded image (jpg/png) uploaded by the teacher for context */
+  imageBase64?: string;
+  /** MIME type of the uploaded image */
+  imageMimeType?: "image/jpeg" | "image/png";
 }
 
 export interface AssignmentRecord extends CreateAssignmentInput {

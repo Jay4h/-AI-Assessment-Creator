@@ -14,7 +14,7 @@ import OpenAI from "openai";
 import { QUEUE_NAMES, getWorkerEnv } from "@vedaai/config";
 import type { CreateAssignmentDto } from "@vedaai/validation";
 import type { GenerationProgressEvent } from "@vedaai/types";
-import { generateAnswerKey, generateSection } from "./llm/generate.js";
+import { extractImageContext, generateAnswerKey, generateSection } from "./llm/generate.js";
 import type { GeneratedAnswerKey, GeneratedSection } from "./llm/schemas.js";
 
 // ─── Mongoose schemas ─────────────────────────────────────────────────────────
@@ -124,11 +124,39 @@ async function bootstrap() {
         payload: CreateAssignmentDto;
       };
 
+      console.log(
+        `[worker] Assignment ${assignmentId} — image attached: ${!!payload.imageBase64}`,
+      );
+
       await AssignmentModel.findByIdAndUpdate(assignmentId, { status: "processing" });
       await job.updateProgress(
         progressEvent(assignmentId, "processing", "Building your question paper with AI…", 10),
       );
 
+      // ── Step 1: Vision pre-pass (best-effort, non-strict) ─────────────────
+      // Extracts a plain-text description from the uploaded image so it can be
+      // injected as text context into the structured output prompts in Step 2.
+      // This avoids the OpenAI limitation: strict structured outputs refuse
+      // image_url content parts.
+      let imageContext: string | undefined;
+      if (payload.imageBase64 && payload.imageMimeType) {
+        await job.updateProgress(
+          progressEvent(assignmentId, "processing", "Analysing reference image…", 8),
+        );
+        imageContext = await extractImageContext(
+          openai,
+          model,
+          payload.imageBase64,
+          payload.imageMimeType,
+          payload.subject,
+          payload.className,
+        );
+        console.log(
+          `[worker] Image context extracted (${imageContext?.length ?? 0} chars): ${imageContext?.slice(0, 80)}…`,
+        );
+      }
+
+      // ── Step 2: Structured section generation ─────────────────────────────
       const sectionCount = payload.questionTypes.length;
       const sections: GeneratedSection[] = [];
 
@@ -136,7 +164,7 @@ async function bootstrap() {
         const letter = String.fromCharCode(65 + i);
         console.log(`[worker] Generating Section ${letter} for assignment ${assignmentId}`);
 
-        const section = await generateSection(openai, model, payload, i);
+        const section = await generateSection(openai, model, payload, i, imageContext);
         sections.push(section);
 
         const pct = 10 + Math.round(((i + 1) / sectionCount) * 60);
