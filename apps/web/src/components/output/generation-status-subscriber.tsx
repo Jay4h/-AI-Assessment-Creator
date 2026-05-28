@@ -16,7 +16,7 @@ export function GenerationStatusSubscriber({ assignmentId }: Props) {
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
     const socket = io(apiUrl, {
-      transports: ["websocket"],
+      transports: ["polling", "websocket"], // polling first for Render free tier
       autoConnect: true,
     });
 
