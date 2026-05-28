@@ -88,6 +88,23 @@ export function OutputClient({
     loadOutput();
   }, [socketStatus, paper, loadOutput]);
 
+  // Polling fallback — in case Socket.IO fails (CORS, network, etc.)
+  // Poll every 3s while still generating and paper not loaded yet
+  useEffect(() => {
+    if (paper) return; // already have paper
+    if (resolvedStatus === "completed" || resolvedStatus === "failed") return;
+
+    const interval = setInterval(() => {
+      if (loadedRef.current) {
+        clearInterval(interval);
+        return;
+      }
+      loadOutput();
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [paper, resolvedStatus, loadOutput]);
+
   const needsSocket =
     !initialPaper &&
     displayStatus !== "completed" &&
