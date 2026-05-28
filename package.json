@@ -6,9 +6,13 @@
     "dev:web": "pnpm --filter @vedaai/web dev",
     "dev:api": "pnpm --filter @vedaai/api dev",
     "dev:worker": "pnpm --filter @vedaai/worker dev",
+    "start": "concurrently \"pnpm --filter @vedaai/api start\" \"pnpm --filter @vedaai/worker start\"",
     "build": "pnpm -r build",
     "lint": "pnpm --filter @vedaai/web lint",
     "typecheck": "pnpm -r typecheck"
+  },
+  "dependencies": {
+    "concurrently": "^9.1.2"
   },
   "engines": {
     "node": ">=20"
