@@ -76,6 +76,11 @@ export function OutputClient({
     });
   }, [assignmentId]);
 
+  // Keep a stable ref to loadOutput so the polling interval never needs
+  // to be re-created when loadOutput's identity changes.
+  const loadOutputRef = useRef(loadOutput);
+  useEffect(() => { loadOutputRef.current = loadOutput; }, [loadOutput]);
+
   // One-shot check on mount when SSR did not provide the paper
   useEffect(() => {
     if (initialPaper) return;
@@ -89,21 +94,21 @@ export function OutputClient({
   }, [socketStatus, paper, loadOutput]);
 
   // Polling fallback — in case Socket.IO fails (CORS, network, etc.)
-  // Poll every 3s while still generating and paper not loaded yet
+  // Empty deps = interval starts ONCE on mount, never restarts.
+  // Uses loadOutputRef so it always calls the latest loadOutput.
   useEffect(() => {
-    if (paper) return; // already have paper
-    if (resolvedStatus === "completed" || resolvedStatus === "failed") return;
+    if (loadedRef.current) return; // SSR already had the paper
 
     const interval = setInterval(() => {
       if (loadedRef.current) {
         clearInterval(interval);
         return;
       }
-      loadOutput();
+      loadOutputRef.current();
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [paper, resolvedStatus, loadOutput]);
+  }, []); // ← intentionally empty: only one interval, ever
 
   const needsSocket =
     !initialPaper &&
@@ -132,7 +137,7 @@ export function OutputClient({
         </div>
       ) : null}
 
-      {!paper && displayStatus !== "completed" && displayStatus !== "failed" ? (
+      {!paper && !isPending && displayStatus !== "completed" && displayStatus !== "failed" ? (
         <div className="mx-auto flex max-w-[480px] flex-col items-center gap-8 rounded-3xl bg-white p-8 shadow-[0px_20px_30px_rgba(146,146,146,0.19)] sm:p-10">
           <Spinner />
 
