@@ -125,7 +125,8 @@ export function OutputClient({
         </div>
       ) : null}
 
-      {!paper && isPending ? (
+      {/* Skeleton — only when paper is confirmed ready and we're loading it */}
+      {!paper && isPending && (resolvedStatus === "completed" || socketStatus === "completed") ? (
         <div className="mx-auto max-w-[1100px] animate-pulse space-y-4 rounded-3xl bg-white p-8">
           <div className="h-6 w-2/3 rounded bg-[#f0f0f0]" />
           <div className="h-4 w-1/2 rounded bg-[#f0f0f0]" />
@@ -137,7 +138,8 @@ export function OutputClient({
         </div>
       ) : null}
 
-      {!paper && !isPending && displayStatus !== "completed" && displayStatus !== "failed" ? (
+      {/* Spinner — always visible while generating, not hidden during polling */}
+      {!paper && displayStatus !== "completed" && displayStatus !== "failed" ? (
         <div className="mx-auto flex max-w-[480px] flex-col items-center gap-8 rounded-3xl bg-white p-8 shadow-[0px_20px_30px_rgba(146,146,146,0.19)] sm:p-10">
           <Spinner />
 
