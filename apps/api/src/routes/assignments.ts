@@ -25,21 +25,12 @@ export function createAssignmentsRouter(generationQueue: Queue<GenerationJobData
       status: "queued",
     });
 
+    const assignmentId = String(created._id);
     await generationQueue.add(
       "generate-assessment",
+      { assignmentId },
       {
-        assignmentId: String(created._id),
-        payload: {
-          ...parsed.data,
-          questionTypes: parsed.data.questionTypes.map((row, idx) => ({
-            ...row,
-            id: row.id ?? `row-${idx + 1}`,
-          })),
-          imageBase64: parsed.data.imageBase64,
-          imageMimeType: parsed.data.imageMimeType,
-        },
-      },
-      {
+        jobId: assignmentId,
         attempts: 3,
         backoff: { type: "exponential", delay: 5000 },
         removeOnComplete: 50,
@@ -55,7 +46,9 @@ export function createAssignmentsRouter(generationQueue: Queue<GenerationJobData
 
   router.get("/", async (_req, res) => {
     const assignments = (await AssignmentModel.find()
+      .select("title subject className dueDate status createdAt")
       .sort({ createdAt: -1 })
+      .limit(200)
       .lean()) as any[];
     return res.status(200).json(
       assignments.map((a) => ({
@@ -132,20 +125,12 @@ export function createAssignmentsRouter(generationQueue: Queue<GenerationJobData
     ).lean()) as any;
     if (!assignment) return res.status(404).json({ error: "Assignment not found" });
 
+    const regenId = String(assignment._id);
     await generationQueue.add(
       "regenerate-assessment",
+      { assignmentId: regenId },
       {
-        assignmentId: String(assignment._id),
-        payload: {
-          title: assignment.title,
-          subject: assignment.subject,
-          className: assignment.className,
-          dueDate: assignment.dueDate,
-          additionalInstructions: assignment.additionalInstructions,
-          questionTypes: assignment.questionTypes,
-        },
-      },
-      {
+        jobId: `regen-${regenId}-${Date.now()}`,
         attempts: 3,
         backoff: { type: "exponential", delay: 5000 },
         removeOnComplete: 50,

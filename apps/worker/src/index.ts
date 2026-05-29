@@ -16,6 +16,9 @@ import type { CreateAssignmentDto } from "@vedaai/validation";
 import type { GenerationProgressEvent } from "@vedaai/types";
 import { extractImageContext, generateAnswerKey, generateSection } from "./llm/generate.js";
 import type { GeneratedAnswerKey, GeneratedSection } from "./llm/schemas.js";
+import { mapWithConcurrency } from "./map-with-concurrency.js";
+
+const SECTION_CONCURRENCY = 2;
 
 // ─── Mongoose schemas ─────────────────────────────────────────────────────────
 
@@ -29,9 +32,13 @@ const assignmentSchema = new mongoose.Schema(
     title: String, subject: String, className: String, dueDate: String,
     additionalInstructions: String, questionTypes: [questionTypeSchema],
     status: String, questionPaperId: String,
+    imageBase64: { type: String, select: false },
+    imageMimeType: { type: String, select: false },
   },
   { timestamps: true },
 );
+
+assignmentSchema.index({ createdAt: -1 });
 
 const questionPaperSchema = new mongoose.Schema(
   {
@@ -41,6 +48,8 @@ const questionPaperSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+questionPaperSchema.index({ id: 1 }, { unique: true });
 
 const AssignmentModel =
   mongoose.models.Assignment || mongoose.model("Assignment", assignmentSchema);
@@ -118,13 +127,44 @@ async function bootstrap() {
       tls: { rejectUnauthorized: false },
     }),
   });
+  redis.on("error", (err) => {
+    console.error("[redis/worker] error:", err.message);
+  });
 
   const worker = new Worker(
     QUEUE_NAMES.generation,
     async (job) => {
-      const { assignmentId, payload } = job.data as {
-        assignmentId: string;
-        payload: CreateAssignmentDto;
+      const { assignmentId } = job.data as { assignmentId: string };
+
+      const doc = (await AssignmentModel.findById(assignmentId)
+        .select("+imageBase64 +imageMimeType")
+        .lean()) as {
+        title: string;
+        subject: string;
+        className: string;
+        dueDate: string;
+        additionalInstructions?: string;
+        questionTypes: CreateAssignmentDto["questionTypes"];
+        imageBase64?: string;
+        imageMimeType?: "image/jpeg" | "image/png";
+      } | null;
+
+      if (!doc) {
+        throw new Error(`Assignment ${assignmentId} not found`);
+      }
+
+      const payload: CreateAssignmentDto = {
+        title: doc.title,
+        subject: doc.subject,
+        className: doc.className,
+        dueDate: doc.dueDate,
+        additionalInstructions: doc.additionalInstructions ?? "",
+        questionTypes: doc.questionTypes.map((row, idx) => ({
+          ...row,
+          id: row.id ?? `row-${idx + 1}`,
+        })),
+        imageBase64: doc.imageBase64,
+        imageMimeType: doc.imageMimeType,
       };
 
       console.log(
@@ -137,10 +177,6 @@ async function bootstrap() {
       );
 
       // ── Step 1: Vision pre-pass (best-effort, non-strict) ─────────────────
-      // Extracts a plain-text description from the uploaded image so it can be
-      // injected as text context into the structured output prompts in Step 2.
-      // This avoids the OpenAI limitation: strict structured outputs refuse
-      // image_url content parts.
       let imageContext: string | undefined;
       if (payload.imageBase64 && payload.imageMimeType) {
         await job.updateProgress(
@@ -159,27 +195,39 @@ async function bootstrap() {
         );
       }
 
-      // ── Step 2: Structured section generation ─────────────────────────────
+      // ── Step 2: Structured section generation (bounded parallelism) ───────
       const sectionCount = payload.questionTypes.length;
-      const sections: GeneratedSection[] = [];
+      let sectionsCompleted = 0;
 
-      for (let i = 0; i < sectionCount; i++) {
-        const letter = String.fromCharCode(65 + i);
-        console.log(`[worker] Generating Section ${letter} for assignment ${assignmentId}`);
+      const sections = await mapWithConcurrency(
+        payload.questionTypes.map((_, i) => i),
+        SECTION_CONCURRENCY,
+        async (sectionIndex) => {
+          const letter = String.fromCharCode(65 + sectionIndex);
+          console.log(`[worker] Generating Section ${letter} for assignment ${assignmentId}`);
 
-        const section = await generateSection(openai, model, payload, i, imageContext);
-        sections.push(section);
+          const section = await generateSection(
+            openai,
+            model,
+            payload,
+            sectionIndex,
+            imageContext,
+          );
 
-        const pct = 10 + Math.round(((i + 1) / sectionCount) * 60);
-        await job.updateProgress(
-          progressEvent(
-            assignmentId,
-            "processing",
-            `Generated Section ${letter} (${section.questions.length} questions)…`,
-            pct,
-          ),
-        );
-      }
+          sectionsCompleted += 1;
+          const pct = 10 + Math.round((sectionsCompleted / sectionCount) * 60);
+          await job.updateProgress(
+            progressEvent(
+              assignmentId,
+              "processing",
+              `Generated Section ${letter} (${section.questions.length} questions)…`,
+              pct,
+            ),
+          );
+
+          return section;
+        },
+      );
 
       console.log(`[worker] Generating answer key for assignment ${assignmentId}`);
       const meta = await generateAnswerKey(openai, model, payload, sections);

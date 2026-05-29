@@ -1,12 +1,18 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { QuestionPaperView } from "@vedaai/ui";
-import { GenerationStatusSubscriber } from "./generation-status-subscriber";
 import { useAssignmentStatus } from "@/lib/stores/generation-status-store";
-import { fetchAssignmentOutput } from "@/lib/api/output";
+import { fetchAssignmentOutputClient } from "@/lib/api/output-client";
 import type { QuestionPaper } from "@vedaai/types";
+
+const GenerationStatusSubscriber = dynamic(
+  () =>
+    import("./generation-status-subscriber").then((m) => m.GenerationStatusSubscriber),
+  { ssr: false },
+);
 
 interface Props {
   assignmentId: string;
@@ -43,6 +49,8 @@ const STATUS_LABELS: Record<string, string> = {
   failed: "Failed",
 };
 
+const POLL_INTERVAL_MS = 10_000;
+
 export function OutputClient({
   assignmentId,
   initialPaper = null,
@@ -51,6 +59,7 @@ export function OutputClient({
   const { status: socketStatus, message, progress } = useAssignmentStatus(assignmentId);
   const [paper, setPaper] = useState<QuestionPaper | null>(initialPaper);
   const [resolvedStatus, setResolvedStatus] = useState<string | null>(initialStatus ?? null);
+  const [socketUnavailable, setSocketUnavailable] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const loadingRef = useRef(false);
@@ -64,7 +73,7 @@ export function OutputClient({
     loadingRef.current = true;
     startTransition(async () => {
       try {
-        const result = await fetchAssignmentOutput(assignmentId);
+        const result = await fetchAssignmentOutputClient(assignmentId);
         setResolvedStatus(result.status);
         if (result.output) {
           setPaper(result.output);
@@ -76,28 +85,23 @@ export function OutputClient({
     });
   }, [assignmentId]);
 
-  // Keep a stable ref to loadOutput so the polling interval never needs
-  // to be re-created when loadOutput's identity changes.
   const loadOutputRef = useRef(loadOutput);
-  useEffect(() => { loadOutputRef.current = loadOutput; }, [loadOutput]);
+  useEffect(() => {
+    loadOutputRef.current = loadOutput;
+  }, [loadOutput]);
 
-  // One-shot check on mount when SSR did not provide the paper
   useEffect(() => {
     if (initialPaper) return;
     loadOutput();
   }, [initialPaper, loadOutput]);
 
-  // Socket signaled completion — fetch paper once
   useEffect(() => {
     if (socketStatus !== "completed" || paper !== null) return;
     loadOutput();
   }, [socketStatus, paper, loadOutput]);
 
-  // Polling fallback — in case Socket.IO fails (CORS, network, etc.)
-  // Empty deps = interval starts ONCE on mount, never restarts.
-  // Uses loadOutputRef so it always calls the latest loadOutput.
   useEffect(() => {
-    if (loadedRef.current) return; // SSR already had the paper
+    if (!socketUnavailable || loadedRef.current) return;
 
     const interval = setInterval(() => {
       if (loadedRef.current) {
@@ -105,10 +109,10 @@ export function OutputClient({
         return;
       }
       loadOutputRef.current();
-    }, 3000);
+    }, POLL_INTERVAL_MS);
 
     return () => clearInterval(interval);
-  }, []); // ← intentionally empty: only one interval, ever
+  }, [socketUnavailable]);
 
   const needsSocket =
     !initialPaper &&
@@ -117,7 +121,13 @@ export function OutputClient({
 
   return (
     <>
-      {needsSocket ? <GenerationStatusSubscriber assignmentId={assignmentId} /> : null}
+      {needsSocket ? (
+        <GenerationStatusSubscriber
+          assignmentId={assignmentId}
+          onConnected={() => setSocketUnavailable(false)}
+          onConnectionFailed={() => setSocketUnavailable(true)}
+        />
+      ) : null}
 
       {paper ? (
         <div className="mx-auto max-w-[1100px] rounded-[32px] bg-[#5e5e5e] p-2 sm:p-4 lg:p-5 print:bg-white print:p-0 print:rounded-none">
@@ -125,7 +135,6 @@ export function OutputClient({
         </div>
       ) : null}
 
-      {/* Skeleton — only when paper is confirmed ready and we're loading it */}
       {!paper && isPending && (resolvedStatus === "completed" || socketStatus === "completed") ? (
         <div className="mx-auto max-w-[1100px] animate-pulse space-y-4 rounded-3xl bg-white p-8">
           <div className="h-6 w-2/3 rounded bg-[#f0f0f0]" />
@@ -138,7 +147,6 @@ export function OutputClient({
         </div>
       ) : null}
 
-      {/* Spinner — always visible while generating, not hidden during polling */}
       {!paper && displayStatus !== "completed" && displayStatus !== "failed" ? (
         <div className="mx-auto flex max-w-[480px] flex-col items-center gap-8 rounded-3xl bg-white p-8 shadow-[0px_20px_30px_rgba(146,146,146,0.19)] sm:p-10">
           <Spinner />
@@ -162,9 +170,9 @@ export function OutputClient({
         <div className="mx-auto flex max-w-[480px] flex-col items-center gap-6 rounded-3xl bg-white p-8 shadow-[0px_20px_30px_rgba(146,146,146,0.19)] text-center sm:p-10">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden>
-              <circle cx="16" cy="16" r="14" stroke="#ef4444" strokeWidth="2"/>
-              <path d="M16 9V17" stroke="#ef4444" strokeWidth="2" strokeLinecap="round"/>
-              <circle cx="16" cy="22" r="1.5" fill="#ef4444"/>
+              <circle cx="16" cy="16" r="14" stroke="#ef4444" strokeWidth="2" />
+              <path d="M16 9V17" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" />
+              <circle cx="16" cy="22" r="1.5" fill="#ef4444" />
             </svg>
           </div>
           <div className="space-y-2">

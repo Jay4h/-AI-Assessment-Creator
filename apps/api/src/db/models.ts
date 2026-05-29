@@ -21,9 +21,14 @@ const assignmentSchema = new Schema(
     questionTypes: { type: [questionTypeSchema], required: true },
     status: { type: String, required: true, default: "queued" },
     questionPaperId: { type: String },
+    /** Stored on document only — excluded from list queries; not queued in Redis */
+    imageBase64: { type: String, select: false },
+    imageMimeType: { type: String, select: false },
   },
   { timestamps: true },
 );
+
+assignmentSchema.index({ createdAt: -1 });
 
 const questionPaperSchema = new Schema(
   {
@@ -40,6 +45,8 @@ const questionPaperSchema = new Schema(
   },
   { timestamps: true },
 );
+
+questionPaperSchema.index({ id: 1 }, { unique: true });
 
 export const AssignmentModel =
   mongoose.models.Assignment || mongoose.model("Assignment", assignmentSchema);

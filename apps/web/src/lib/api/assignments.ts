@@ -13,7 +13,7 @@ export interface AssignmentSummary {
 export async function fetchAssignments(): Promise<AssignmentSummary[]> {
   try {
     const res = await fetch(`${getServerApiUrl()}/api/assignments`, {
-      cache: "no-store",
+      next: { revalidate: 30, tags: ["assignments"] },
     });
     if (!res.ok) return [];
     return (await res.json()) as AssignmentSummary[];

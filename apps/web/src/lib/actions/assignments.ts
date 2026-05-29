@@ -76,11 +76,14 @@ export async function submitAssignment(
     };
   }
 
+  const { revalidateTag } = await import("next/cache");
+  revalidateTag("assignments");
+
   redirect(`/assignments/${assignmentId}/output`);
 }
 
 export async function deleteAssignment(assignmentId: string) {
-  const { revalidatePath } = await import("next/cache");
+  const { revalidatePath, revalidateTag } = await import("next/cache");
   try {
     const res = await fetch(`${getServerApiUrl()}/api/assignments/${assignmentId}`, {
       method: "DELETE",
@@ -91,6 +94,7 @@ export async function deleteAssignment(assignmentId: string) {
     }
 
     revalidatePath("/assignments");
+    revalidateTag("assignments");
     return { ok: true };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to delete assignment";

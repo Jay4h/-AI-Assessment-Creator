@@ -1,13 +1,13 @@
 import type { QuestionPaper } from "@vedaai/types";
-import { getServerApiUrl } from "./config";
+import { getClientApiUrl } from "./config";
 
-/** Server Component / RSC fetch only. */
-export async function fetchAssignmentOutput(
+/** Client-side fetch to Express API (avoids Server Action round-trips). */
+export async function fetchAssignmentOutputClient(
   assignmentId: string,
 ): Promise<{ status: string; output: QuestionPaper | null }> {
   try {
     const res = await fetch(
-      `${getServerApiUrl()}/api/assignments/${assignmentId}/output`,
+      `${getClientApiUrl()}/api/assignments/${assignmentId}/output`,
       { cache: "no-store" },
     );
 

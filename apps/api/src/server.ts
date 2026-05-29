@@ -50,6 +50,9 @@ export function createApiServer({
       tls: { rejectUnauthorized: false },
     }),
   });
+  queueEventsRedis.on("error", (err) => {
+    console.error("[redis/queue-events] error:", err.message);
+  });
 
   const queueEvents = new QueueEvents(QUEUE_NAMES.generation, {
     connection: queueEventsRedis,

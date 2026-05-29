@@ -1,11 +1,10 @@
 import { Queue } from "bullmq";
 import { QUEUE_NAMES } from "@vedaai/config";
-import type { CreateAssignmentInput } from "@vedaai/types";
 import type IORedis from "ioredis";
 
+/** Image and form fields live on MongoDB; worker loads by assignmentId. */
 export interface GenerationJobData {
   assignmentId: string;
-  payload: CreateAssignmentInput;
 }
 
 export function createQueues(connection: IORedis) {

@@ -2,7 +2,7 @@ import IORedis from "ioredis";
 
 export function createRedisConnection(redisUrl: string) {
   const isTls = redisUrl.startsWith("rediss://");
-  return new IORedis(redisUrl, {
+  const conn = new IORedis(redisUrl, {
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
     ...(isTls && {
@@ -11,4 +11,8 @@ export function createRedisConnection(redisUrl: string) {
       },
     }),
   });
+  conn.on("error", (err) => {
+    console.error("[redis] connection error:", err.message);
+  });
+  return conn;
 }

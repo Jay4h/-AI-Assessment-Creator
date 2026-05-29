@@ -96,7 +96,12 @@ export function Sidebar({
               <Link
                 key={item.href}
                 href={item.href}
-                prefetch={item.href === "/assignments" ? false : undefined}
+                prefetch={
+                  item.href === "/assignments" ||
+                  ["/groups", "/toolkit", "/library"].includes(item.href)
+                    ? false
+                    : undefined
+                }
                 onClick={onNavigate}
                 className={clsx(
                   "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] transition-colors",
@@ -122,6 +127,7 @@ export function Sidebar({
       <div className="flex flex-col gap-2">
         <Link
           href="/settings"
+          prefetch={false}
           onClick={onNavigate}
           className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] text-[#5e5e5e] transition-colors hover:bg-[#f6f6f6] hover:text-[#303030]"
         >

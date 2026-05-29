@@ -5,6 +5,7 @@ import type { GenerationProgressEvent, GenerationJobStatus } from "@vedaai/types
 interface GenerationStatusState {
   events: Record<string, GenerationProgressEvent>;
   setStatus: (event: GenerationProgressEvent) => void;
+  clearStatus: (assignmentId: string) => void;
 }
 
 export const generationStatusStore = createStore<GenerationStatusState>((set) => ({
@@ -13,6 +14,11 @@ export const generationStatusStore = createStore<GenerationStatusState>((set) =>
     set((s) => ({
       events: { ...s.events, [event.assignmentId]: event },
     })),
+  clearStatus: (assignmentId) =>
+    set((s) => {
+      const { [assignmentId]: _, ...rest } = s.events;
+      return { events: rest };
+    }),
 }));
 
 export function useAssignmentStatus(assignmentId: string): {
